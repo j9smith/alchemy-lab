@@ -1,0 +1,12 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/workspace:cached
+      - venv:/workspace/.venv
+    working_dir: /workspace
+
+volumes:
+  venv:
