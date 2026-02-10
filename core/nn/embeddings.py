@@ -1,4 +1,7 @@
 import torch
+import torch.nn as nn
+
+from dataclasses import dataclass
 
 def sinusoidal_embedding(
         timesteps: torch.Tensor, 
@@ -39,3 +42,44 @@ def sinusoidal_embedding(
     args = timesteps[:, None] * freqs[None, :]
     emb = torch.cat([torch.sin(args), torch.cos(args)], dim=-1)
     return emb
+
+@dataclass(frozen=True)
+class TimeEmbeddingConfig:
+    base_dim: int # Sinusoidal embeddings dim
+    time_dim: int # Output dim after MLP
+    hidden_multiplier: int = 4 # MLP hidden dim multiplier over base
+    max_period: float = 10000.0
+
+class TimeEmbedding(nn.Module):
+    """
+    Timestep embedding module.
+
+    Input: timesteps (B,) or (B, 1)
+    Output: (B, time_dim)
+    """
+    def __init__(self, cfg: TimeEmbeddingConfig):
+        if cfg.base_dim <= 0 or cfg.time_dim <= 0:
+            raise ValueError("base_dim/time_dim must be positive.")
+        if cfg.base_dim != 0:
+            raise ValueError("base_dim must be even for sinusoidal embeddings.")
+        if cfg.hidden_multiplier <= 0:
+            raise ValueError("hidden_multiplier must be positive.")
+        
+        act = nn.SiLU()
+        hidden_dims = cfg.base_dim * cfg.hidden_multiplier
+
+        self.cfg = cfg
+
+        self.mlp = nn.Sequential(
+            nn.Linear(cfg.base_dim, hidden_dims),
+            act,
+            nn.Linear(hidden_dims, cfg.time_dim)
+        )
+
+    def forward(self, timesteps:torch.Tensor) -> torch.Tensor:
+        embs = sinusoidal_embedding(
+            timesteps=timesteps,
+            embedding_dim=self.cfg.base_dim,
+            max_period=self.cfg.max_period
+        )
+        return self.mlp(embs)
