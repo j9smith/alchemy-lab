@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import math
 
 from dataclasses import dataclass
 
@@ -34,7 +35,7 @@ def sinusoidal_embedding(
     half_dim = embedding_dim // 2
 
     freqs = torch.exp(
-        -torch.log(max_period)
+        -math.log(max_period)
         * torch.arange(half_dim, device=device, dtype=dtype)
         / (embedding_dim // 2)
     )
@@ -60,10 +61,12 @@ class TimeEmbedding(nn.Module):
     def __init__(self, cfg: TimeEmbeddingConfig):
         if cfg.base_dim <= 0 or cfg.time_dim <= 0:
             raise ValueError("base_dim/time_dim must be positive.")
-        if cfg.base_dim != 0:
+        if cfg.base_dim % 2 != 0:
             raise ValueError("base_dim must be even for sinusoidal embeddings.")
         if cfg.hidden_multiplier <= 0:
             raise ValueError("hidden_multiplier must be positive.")
+        
+        super().__init__()
         
         act = nn.SiLU()
         hidden_dims = cfg.base_dim * cfg.hidden_multiplier
