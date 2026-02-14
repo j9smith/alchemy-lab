@@ -15,10 +15,12 @@ class DiffusionCoefficients:
 
 def make_diffusion_coefficients(betas: torch.Tensor) -> DiffusionCoefficients:
     """
-    Populates the DiffusionCoefficients object with relevant statistics.
-
-    Input: betas (T, )
-    Output: DiffusionCoefficients
+    Pre-computes all commonly used coefficients for diffusion training and sampling.
+    
+    :param betas: Beta schedule.
+    :type betas: torch.Tensor
+    :return: Coefficients for diffusion.
+    :rtype: DiffusionCoefficients
     """
     if betas.ndim != 1:
         raise ValueError("betas should have shape (T, ).")

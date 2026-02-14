@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="docs/assets/header.png" width="300" />
+</p>
+
+
 # Alchemy Lab
 
 This project aims to provide a research-grade generative modelling and inference framework, particularly focussed on diffusion models. It is designed as a long-lived codebase for learning and experimentation. It prioritises explicit implementations, clear abstractions, and separation of concerns. 

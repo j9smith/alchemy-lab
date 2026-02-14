@@ -5,7 +5,7 @@ from typing import Literal
 from dataclasses import dataclass
 
 UpsampleMode = Literal["convtranspose"]
-UPSAMPLE_MODES = ("convtranspose")
+UPSAMPLE_MODES = ("convtranspose",)
 
 @dataclass(frozen=True)
 class UpsampleConfig:

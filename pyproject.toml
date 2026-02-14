@@ -1,0 +1,24 @@
+[project]
+name = "alchemy"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=2.4.2",
+    "torch>=2.10.0",
+]
+
+[project.optional-dependencies]
+runtime = [
+    "fastapi>=0.129.0",
+    "uvicorn[standard]>=0.40.0",
+]
+lab = [
+    "torchvision>=0.25.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]

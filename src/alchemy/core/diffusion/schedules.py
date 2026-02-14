@@ -21,7 +21,23 @@ def linear_beta_schedule(
         beta_end: float = 2e-2,
         device: Optional[torch.device] = None,
         dtype: torch.dtype = torch.float32
-):
+) -> torch.Tensor:
+    """
+    Generates and returns a linear beta schedule.
+    
+    :param T: Number of total timesteps.
+    :type T: int
+    :param beta_start: Initial value of beta.
+    :type beta_start: float
+    :param beta_end: Terminal value of beta.
+    :type beta_end: float
+    :param device: Device on which to create the schedule tensor.
+    :type device: Optional[torch.device]
+    :param dtype: Datatype of the schedule.
+    :type dtype: torch.dtype
+    :return: Linear beta schedule.
+    :rtype: Tensor
+    """
     if T <= 0:
         raise ValueError("T must be positive.")
     if not (0.0 < beta_start < 1.0) or not (0.0 < beta_end < 1.0):
@@ -38,6 +54,14 @@ def linear_beta_schedule(
     )
 
 def make_beta_schedule(cfg: BetaScheduleConfig) -> torch.Tensor:
+    """
+    Generate a beta schedule according to the type specified in config.
+    
+    :param cfg: BetaSchedule config.
+    :type cfg: BetaScheduleConfig
+    :return: Beta schedule.
+    :rtype: Tensor
+    """
     if cfg.type == "linear":
         return linear_beta_schedule(
             T=cfg.T,

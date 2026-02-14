@@ -5,7 +5,7 @@ from typing import Literal
 from dataclasses import dataclass
 
 DownsampleMode = Literal["convstride"]
-DOWNSAMPLE_MODES = ("convstride")
+DOWNSAMPLE_MODES = ("convstride",)
 
 @dataclass(frozen=True)
 class DownsampleConfig():

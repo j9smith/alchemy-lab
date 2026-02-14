@@ -2,11 +2,11 @@ import torch
 import torch.nn as nn
 from dataclasses import dataclass
 
-from core.nn.attention import SelfAttention2D, SelfAttention2DConfig
-from core.nn.downsample import Downsample, DownsampleConfig
-from core.nn.upsample import Upsample, UpsampleConfig
-from core.nn.embeddings import TimeEmbedding, TimeEmbeddingConfig
-from core.nn.residual import ResBlock2D, ResBlock2DConfig
+from alchemy.core.nn.attention import SelfAttention2D, SelfAttention2DConfig
+from alchemy.core.nn.downsample import Downsample, DownsampleConfig
+from alchemy.core.nn.upsample import Upsample, UpsampleConfig
+from alchemy.core.nn.embeddings import TimeEmbedding, TimeEmbeddingConfig
+from alchemy.core.nn.residual import ResBlock2D, ResBlock2DConfig
 
 @dataclass(frozen=True)
 class UNet2DConfig:
@@ -30,7 +30,6 @@ class UNet2D(nn.Module):
     def __init__(self, cfg: UNet2DConfig):
         super().__init__()
         self.cfg = cfg
-
 
         self.time_embed = TimeEmbedding(TimeEmbeddingConfig(
             base_dim=256,

@@ -3,7 +3,7 @@ import torch
 from dataclasses import dataclass
 from typing import Literal, Optional
 
-from core.diffusion.coeffs import DiffusionCoefficients
+from alchemy.core.diffusion.coeffs import DiffusionCoefficients
 
 ObjectiveType = Literal["eps", "x0", "v"]
 
