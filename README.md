@@ -19,6 +19,7 @@ It is not intended to compete with high-level libraries such as those offered by
 - Composable UNet-style architectures
 - Configuration-driven experiment management
 - Structured training harness with clear separation from model primitives
+- Support for distributed training (DDP)
 - Explicit pathway from research experimentation to deployment runtime
 
 ## Repository Structure
