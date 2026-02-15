@@ -59,6 +59,7 @@ def compute_diffusion_loss(
         t: torch.Tensor,
         coeffs: DiffusionCoefficients,
         noise: Optional[torch.Tensor] = None,
+        conditioning=None,
         cfg: LossConfig = LossConfig()
 ):
     """
@@ -82,7 +83,7 @@ def compute_diffusion_loss(
         noise = torch.randn_like(x0)
 
     x_t = _generate_xt(x0, t, noise, coeffs)
-    pred = model(x_t, t)
+    pred = model(x_t, t, conditioning=None)
 
     # TODO: Support v-prediction
     if cfg.objective == "eps":

@@ -24,11 +24,12 @@ def ddpm_sample(
         shape: tuple[int, int, int, int], # [B, C, H, W]
         device: torch.device,
         decoder: Optional[nn.Module] = None,
+        conditioning=None,
         cfg: DDPMSampleConfig = DDPMSampleConfig(),
 ) -> torch.Tensor:
     """
     Samples images from the denoiser via ancestral sampling according to the
-    algoritmh proposed in DDPM (Ho et al, 2020).
+    algorithm proposed in DDPM (Ho et al, 2020).
     
     :param denoiser: A pre-trained denoiser model.
     :type denoiser: torch.nn.Module
@@ -59,7 +60,7 @@ def ddpm_sample(
         c1 = coeffs.posterior_mean_coef1[t]
         c2 = coeffs.posterior_mean_coef2[t]
 
-        eps_theta = denoiser(xt, t_batch)
+        eps_theta = denoiser(xt, t_batch, conditioning=None)
 
         # TODO: add different prediction modes
         if cfg.prediction_mode == "eps":

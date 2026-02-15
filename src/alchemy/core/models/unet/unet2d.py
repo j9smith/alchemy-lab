@@ -179,7 +179,7 @@ class UNet2D(nn.Module):
 
         self.out_act = nn.SiLU()
 
-    def forward(self, x:torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+    def forward(self, x:torch.Tensor, t: torch.Tensor, conditioning=None) -> torch.Tensor:
         t_emb = self.time_embed(t)
         h = self.in_conv(x)
 
