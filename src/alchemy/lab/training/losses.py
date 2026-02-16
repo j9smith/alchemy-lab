@@ -1,28 +1,30 @@
 import torch
 from dataclasses import dataclass
-from alchemy.core.diffusion.coeffs import DiffusionCoefficients
+from alchemy.core.diffusion.schedules import make_beta_schedule, BetaScheduleConfig
+from alchemy.core.diffusion.coeffs import make_diffusion_coefficients
 from alchemy.core.diffusion.objectives import compute_diffusion_loss, LossConfig
 
 @dataclass(frozen=True)
 class DiffusionLossWrapperConfig:
+    beta_schedule_cfg: BetaScheduleConfig
     objective: str = "eps"
-    num_timesteps: int = 1000
 
 class DiffusionLossFn:
     def __init__(
             self,
-            coeffs: DiffusionCoefficients,
-            cfg: DiffusionLossWrapperConfig
+            loss_cfg: DiffusionLossWrapperConfig,
+            device: torch.device
     ):
-        self.coeffs = coeffs
-        self.loss_cfg = LossConfig(objective=cfg.objective)
-        self.T = cfg.num_timesteps
+        self.betas = make_beta_schedule(cfg=loss_cfg.beta_schedule_cfg, device=device)
+        self.coeffs = make_diffusion_coefficients(betas=self.betas)
+        self.loss_cfg = LossConfig(objective=loss_cfg.objective)
+        self.T = loss_cfg.beta_schedule_cfg.T
+        self.device = device
 
     def __call__(self, model, batch):
         # TODO: Will later enforce batch to be a tuple or dict for conditioning
         # Make sure this is updated to reflect the new structure
-        device = next(model.parameters()).device
-        x0 = batch[0].to(device, non_blocking=True)
+        x0 = batch[0].to(self.device, non_blocking=True)
 
         B = x0.shape[0]
         t = torch.randint(
