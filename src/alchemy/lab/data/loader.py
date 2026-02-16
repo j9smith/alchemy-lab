@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from torch.utils.data import DataLoader
 from torch.utils.data import DistributedSampler
-import torch.distributed as dist
+import alchemy.lab.training.distributed as dist
 
 @dataclass(frozen=True)
 class LoaderConfig:
@@ -22,16 +22,18 @@ def build_dataloader(dataset, cfg:LoaderConfig) -> DataLoader:
     :return: Dataloader loaded with the desired config.
     :rtype: DataLoader
     """
-    distributed = dist.is_available() and dist.is_initialized()
+    distributed = dist.get_world_size() > 1
     sampler = DistributedSampler(
         dataset=dataset,
         shuffle=cfg.shuffle
     ) if distributed else None
 
+    shuffle = cfg.shuffle and sampler is None
+
     return DataLoader(
         dataset=dataset,
         batch_size=cfg.batch_size,
-        shuffle=cfg.shuffle,
+        shuffle=shuffle,
         sampler=sampler,
         num_workers=cfg.num_workers,
         pin_memory=cfg.pin_memory,
