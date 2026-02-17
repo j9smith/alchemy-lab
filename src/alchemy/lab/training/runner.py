@@ -42,8 +42,9 @@ class TrainingRunner():
             loss = self._train_step(batch)
             self.step += 1
 
-            if dist.is_main_process() and (self.step % self.cfg.train.log_every_n_steps == 0):
+            if dist.is_main_process():
                 self.logger.log_scalar("train/loss", loss, self.step)
+                self.logger.log_scalar("lr", self.optimiser.param_groups[0]["lr"], self.step)
 
     def _train_step(self, batch) -> torch.Tensor:
         self.optimiser.zero_grad(set_to_none=True)
