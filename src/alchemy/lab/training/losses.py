@@ -1,15 +1,24 @@
 import torch
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from alchemy.core.diffusion.schedules import make_beta_schedule, BetaScheduleConfig
 from alchemy.core.diffusion.coeffs import make_diffusion_coefficients
 from alchemy.core.diffusion.objectives import compute_diffusion_loss, LossConfig
+
+class LossFn(ABC):
+    """
+    Base class for loss functions.
+    """
+    @abstractmethod
+    def __call__(self, model, batch) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        raise NotImplementedError()
 
 @dataclass(frozen=True)
 class DiffusionLossWrapperConfig:
     beta_schedule_cfg: BetaScheduleConfig
     objective: str = "eps"
 
-class DiffusionLossFn:
+class DiffusionLossFn(LossFn):
     def __init__(
             self,
             loss_cfg: DiffusionLossWrapperConfig,
@@ -35,7 +44,7 @@ class DiffusionLossFn:
             dtype=torch.long
         )
 
-        return compute_diffusion_loss(
+        loss = compute_diffusion_loss(
             model=model,
             x0=x0,
             t=t,
@@ -44,3 +53,5 @@ class DiffusionLossFn:
             cfg=self.loss_cfg,
             conditioning=None
         )
+
+        return loss, {}
