@@ -3,6 +3,14 @@ train:
   max_steps: 1000
   log_every_n_steps: 1
 
+checkpoints:
+  _target_: alchemy.lab.training.checkpoints.CheckpointManager
+  cfg:
+    _target_: alchemy.lab.training.checkpoints.CheckpointManagerConfig
+    save_every_n_steps: 100
+    path: "~/Projects/alchemy/src/alchemy/lab/output/weights/1"
+    prefix: "unet"
+
 dist:
   backend: nccl
 
@@ -43,6 +51,9 @@ loss:
       beta_end: 0.02
 
 data:
+  image:
+    channels: 3
+    resolution: 32
   dataset:
     _target_: alchemy.lab.data.dataset.build_dataset
     cfg: {}
