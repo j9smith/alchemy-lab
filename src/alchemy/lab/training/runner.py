@@ -1,7 +1,10 @@
 import torch
 from torch.utils.data import DistributedSampler
+from typing import Optional 
+
 import alchemy.lab.training.distributed as dist
 from alchemy.lab.loggers.base import Logger
+from alchemy.lab.training.checkpoints import CheckpointManager
 
 class TrainingRunner():
     def __init__(
@@ -11,7 +14,10 @@ class TrainingRunner():
             loss_fn,
             logger: Logger,
             cfg,
-            device: torch.device
+            device: torch.device,
+            checkpoint_manager: CheckpointManager,
+            ema: Optional[torch.nn.Module] = None,
+            scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None
     ):
         self.model = model
         self.optimiser = optimiser
@@ -19,6 +25,9 @@ class TrainingRunner():
         self.logger = logger
         self.cfg = cfg
         self.device = device
+        self.checkpoint_manager = checkpoint_manager
+        self.ema = ema
+        self.scheduler = scheduler
 
         self.step = 0
         self.epoch = 0
@@ -39,19 +48,34 @@ class TrainingRunner():
                 it = iter(dataloader) # Re-create iterator
                 batch = next(it)
 
-            loss = self._train_step(batch)
+            loss, metrics = self._train_step(batch)
+            # TODO: use metrics for logging (e.g., elbo, recon, kl)
             self.step += 1
 
             if dist.is_main_process():
                 self.logger.log_scalar("train/loss", loss, self.step)
                 self.logger.log_scalar("lr", self.optimiser.param_groups[0]["lr"], self.step)
 
+                if self.checkpoint_manager is not None:
+                    self.checkpoint_manager.save(
+                        model=self.model,
+                        global_step=self.step,
+                        epoch=self.epoch,
+                        ema=self.ema,
+                        optimiser=self.optimiser,
+                        scheduler=self.scheduler,
+                        logging=None, # TODO: add logging identifiers in checkpointing
+                        run_config=self.cfg
+                    )
+
+        self.logger.close()
+
     def _train_step(self, batch) -> torch.Tensor:
         self.optimiser.zero_grad(set_to_none=True)
-        loss = self.loss_fn(self.model, batch)
+        loss, metrics = self.loss_fn(self.model, batch)
         loss.backward()
         self.optimiser.step()
 
         loss_detached = loss.detach()
         mean_loss = dist.reduce_mean(loss_detached)
-        return mean_loss
+        return mean_loss, metrics
