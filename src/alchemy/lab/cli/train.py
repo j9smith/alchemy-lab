@@ -7,8 +7,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 import alchemy.lab.training.distributed as dist
 from alchemy.lab.training.runner import TrainingRunner
-from alchemy.lab.loggers.base import CompositeLogger
-from alchemy.lab.loggers.terminal import TerminalLogger, TerminalLoggerConfig
+from alchemy.lab.loggers.base import build_logger
 
 @hydra.main(version_base=None, config_path="../configs", config_name="train")
 def main(cfg: DictConfig):
@@ -34,16 +33,12 @@ def main(cfg: DictConfig):
     optimiser = instantiate(cfg.optim, model=model)
     loss_fn = instantiate(cfg.loss, device=device)
 
-    #logger = CompositeLogger()
-    logger = TerminalLogger(TerminalLoggerConfig(
-        total_steps=cfg.train.max_steps
-    ))
-
     dataset = instantiate(cfg.data.dataset)
     dataloader = instantiate(cfg.data.loader, dataset=dataset)
 
     checkpoint_manager = instantiate(cfg.checkpoints)
 
+    logger = build_logger(cfg)
     runner = TrainingRunner(
         model=model,
         optimiser=optimiser,
