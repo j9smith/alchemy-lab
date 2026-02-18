@@ -39,6 +39,8 @@ class TerminalLogger:
             metrics="",
         )
 
+        self._last_step = 0
+
     def log_scalar(self, name: str, value: float, step: int):
         if not self.enabled:
             return
@@ -50,11 +52,15 @@ class TerminalLogger:
         
         metrics = " | ".join(f"{k}: {v:.4f}" for k, v in self.latest.items())
 
+        advance = step - self._last_step
+
         self.progress.update(
             self.task_id,
-            advance=self.cfg.print_every_n_steps,
+            advance=advance,
             metrics=metrics
         )
+
+        self._last_step = step
 
     def close(self):
         if not self.enabled:
