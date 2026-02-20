@@ -5,6 +5,7 @@ from typing import Optional
 import alchemy.lab.training.distributed as dist
 from alchemy.lab.loggers.base import Logger
 from alchemy.lab.training.checkpoints import CheckpointManager
+from alchemy.lab.training.ema import update_ema_model
 
 class TrainingRunner():
     def __init__(
@@ -49,11 +50,11 @@ class TrainingRunner():
                 batch = next(it)
 
             loss, metrics = self._train_step(batch)
-            # TODO: use metrics for logging (e.g., elbo, recon, kl)
+            # TODO: use metrics for logging
             self.step += 1
 
             if dist.is_main_process():
-                self.logger.log_scalar("train/loss", loss, self.step)
+                self.logger.log_scalar("train/loss", loss.item(), self.step)
                 self.logger.log_scalar("lr", self.optimiser.param_groups[0]["lr"], self.step)
 
                 if self.checkpoint_manager is not None:
@@ -68,14 +69,17 @@ class TrainingRunner():
                         run_config=self.cfg
                     )
 
+        # TODO: Save on final step
         self.logger.close()
 
-    def _train_step(self, batch) -> torch.Tensor:
+    def _train_step(self, batch) -> tuple[torch.Tensor, dict]:
         self.optimiser.zero_grad(set_to_none=True)
         loss, metrics = self.loss_fn(self.model, batch)
         loss.backward()
         self.optimiser.step()
 
-        loss_detached = loss.detach()
-        mean_loss = dist.reduce_mean(loss_detached)
+        if self.ema is not None:
+            update_ema_model(self.model, self.ema, decay=self.cfg.train.ema_decay)
+
+        mean_loss = dist.reduce_mean(loss.detach())
         return mean_loss, metrics

@@ -1,3 +1,4 @@
+import copy
 import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
@@ -26,6 +27,9 @@ def main(cfg: DictConfig):
     dtype = torch.float32
 
     model = instantiate(cfg.model).to(device)
+    ema  = copy.deepcopy(model).eval().to(device)
+    for p in ema.parameters():
+        p.requires_grad_(False)
 
     if dist.get_world_size() > 1:
         model = DDP(model, device_ids=[torch.cuda.current_device()]) if torch.cuda.is_available() else DDP(model)
@@ -45,6 +49,7 @@ def main(cfg: DictConfig):
         loss_fn=loss_fn,
         logger=logger,
         cfg=cfg,
+        ema=ema,
         device=device,
         checkpoint_manager=checkpoint_manager
     )
