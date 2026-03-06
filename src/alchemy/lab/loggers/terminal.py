@@ -41,6 +41,11 @@ class TerminalLogger:
 
         self._last_step = 0
 
+    def add_text(self, text: str):
+        if not self.enabled:
+            return
+        self.progress.console.log(text)
+
     def log_scalar(self, name: str, value: float, step: int):
         if not self.enabled:
             return

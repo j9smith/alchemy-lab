@@ -9,6 +9,7 @@ class TensorBoardLoggerConfig:
     experiment_name: str = "default"
     enabled: bool = True
     flush_secs: int = 20
+    log_every_n_steps: int = 10
 
 class TensorBoardLogger(Logger):
     def __init__(self, cfg: TensorBoardLoggerConfig):
@@ -18,13 +19,19 @@ class TensorBoardLogger(Logger):
             return
         
         self.enabled = True
+        self.log_every_n_steps = cfg.log_every_n_steps
         
         log_dir = Path(cfg.log_dir).expanduser() / cfg.experiment_name
         log_dir.mkdir(parents=True, exist_ok=True)
         self.writer = SummaryWriter(log_dir=log_dir, flush_secs=cfg.flush_secs)
 
+    def add_text(self, text: str) -> None:
+        pass
+    
     def log_scalar(self, name: str, value: float, step: int) -> None:
         if not self.enabled: 
+            return
+        if step % self.cfg.log_every_n_steps != 0:
             return
         self.writer.add_scalar(name, value, step)
 

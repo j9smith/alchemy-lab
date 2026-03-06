@@ -21,6 +21,10 @@ class CompositeLogger(Logger):
 
     def add(self, logger: Logger):
         self.loggers.append(logger)
+
+    def add_text(self, text: str):
+        for logger in self.loggers:
+            logger.add_text(text)
         
     def log_scalar(self, name: str, value: float, step: int):
         for logger in self.loggers:
