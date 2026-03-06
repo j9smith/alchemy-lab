@@ -17,6 +17,7 @@ It is not intended to compete with high-level libraries such as those offered by
 ## Features
 - Modular diffusion core
 - Composable UNet-style architectures
+- Support for latent diffusion
 - Configuration-driven experiment management
 - Structured training harness with clear separation from model primitives
 - Support for distributed training (DDP)
@@ -53,16 +54,33 @@ uv run python train.py
 Example config file:
 ```yaml
 train:
+  resume: "checkpoint.pt"
   precision: fp32
   max_steps: 50000
-  log_every_n_steps: 100
+  ema_decay: 0.9999
+
+logging:
+  tensorboard:
+    _target_: alchemy.lab.loggers.tensorboard.TensorBoardLogger
+    cfg:
+      _target_: alchemy.lab.loggers.tensorboard.TensorBoardLoggerConfig
+      log_dir: "~/logging"
+      experiment_name: "default"
+      enabled: true
+  terminal:
+    _target_: alchemy.lab.loggers.terminal.TerminalLogger
+    cfg:
+      _target_: alchemy.lab.loggers.terminal.TerminalLoggerConfig
+      total_steps: 10000
+      print_every_n_steps: 10
+      enabled: true 
 
 checkpoints:
   _target_: alchemy.lab.training.checkpoints.CheckpointManager
   cfg:
     _target_: alchemy.lab.training.checkpoints.CheckpointManagerConfig
-    save_every_n_steps: 100
-    path: "weights/"
+    save_every_n_steps: 1000
+    path: "weights.pt"
     prefix: "unet"
 
 dist:
@@ -72,18 +90,25 @@ model:
   _target_: alchemy.core.models.unet.unet2d.UNet2D
   cfg:
     _target_: alchemy.core.models.unet.unet2d.UNet2DConfig
-    in_channels: 3
-    out_channels: 3
+    in_channels: 4
+    out_channels: 4
     base_channels: 64
     channel_multipliers: [1,2,4,8]
-    attn_levels: [1]
-    use_mid_attn: false
+    attn_levels: [1, 2]
+    use_mid_attn: true
     attn_num_heads: 8
     num_res_blocks: 2
     time_embed_dim: 256
     norm_groups: 32
     dropout: 0.1
     conv_bias: false
+
+vae:
+  _target_: alchemy.core.models.vae.pretrained.PretrainedVAE
+  cfg:
+    _target_: alchemy.core.models.vae.pretrained.PretrainedVAEConfig
+    pretrained_model: "stabilityai/sd-vae-ft-mse"
+    scaling_factor: 0.18215
 
 optim:
   _target_: alchemy.lab.training.optim.build_optimiser
@@ -107,20 +132,23 @@ loss:
 data:
   image:
     channels: 3
-    resolution: 32
+    resolution: 256
   dataset:
     _target_: alchemy.lab.data.dataset.build_dataset
-    cfg: {}
+    cfg:
+      _target_: alchemy.lab.data.dataset.DatasetConfig
+      resolution: 256
   loader:
     _target_: alchemy.lab.data.loader.build_dataloader
     cfg:
       _target_: alchemy.lab.data.loader.LoaderConfig
-      batch_size: 128
+      batch_size: 32
       num_workers: 8
       shuffle: true
       drop_last: true
       pin_memory: true
       persistent_workers: true
+
 ```
 
 Images can be sampled by loading saved checkpoints via the `cli/sample.py` script:
@@ -131,7 +159,6 @@ Sampled images are stored in `output/samples.png`.
 
 ## Roadmap
 Alchemy Lab is very much a work in progress. Planned extensions include:
-- Latent diffusion
 - DiT architecture
 - Mixed precision training
 - Distributed training (FSDP)
