@@ -25,6 +25,7 @@ def main():
 
     checkpoint = torch.load(Path(args.ckpt), map_location="cpu")
     cfg = OmegaConf.create(checkpoint["run_config"])
+    img_cfg = cfg.data.image
 
     device = torch.device(args.device)
 
@@ -33,7 +34,6 @@ def main():
     model: torch.nn.Module = instantiate(cfg.model).to(device)
     ema: torch.nn.Module | None = None
 
-    # TODO: Load EMA model
     if args.use_ema and checkpoint["state"].get("ema") is not None:
         ema = instantiate(cfg.model).to(device)
 
@@ -52,17 +52,38 @@ def main():
     denoiser = ema if (args.use_ema and ema is not None) else model
     denoiser.eval()
 
+    vae = None
+    if "vae" in cfg:
+        vae = instantiate(cfg.vae).to(device)
+        vae.eval()
+
+    if vae is not None:
+        with torch.no_grad():
+            # Discover the latent shape for noise init
+            # TODO: Can we make this a property of the VAE class rather than dummy pass?
+            dummy = torch.zeros(
+                1, 
+                img_cfg.channels, 
+                img_cfg.resolution, 
+                img_cfg.resolution,
+                device=device
+            )
+            dummy_latent = vae.encode(dummy)
+        _, C, H, W = dummy_latent.shape
+        shape = (args.n, C, H, W)
+    else:
+        shape = (args.n, img_cfg.channels, img_cfg.resolution, img_cfg.resolution)
+
     beta_cfg = cfg.loss.loss_cfg.beta_schedule_cfg
     betas = make_beta_schedule(cfg=beta_cfg, device=device)
     coeffs = make_diffusion_coefficients(betas=betas)
 
-    img_cfg = cfg.data.image
-
     samples = ddpm_sample(
         denoiser=denoiser,
         coeffs=coeffs,
-        shape=(args.n, img_cfg.channels, img_cfg.resolution, img_cfg.resolution),
-        device=device
+        shape=shape,
+        device=device,
+        decoder=vae.decode if vae is not None else None
     )
 
     grid = make_grid(samples, nrow=6, normalize=True, value_range=(-1, 1))

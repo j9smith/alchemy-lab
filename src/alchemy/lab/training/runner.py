@@ -11,6 +11,7 @@ class TrainingRunner():
     def __init__(
             self,
             model: torch.nn.Module,
+            vae: torch.nn.Module,
             optimiser: torch.optim.Optimizer,
             loss_fn,
             logger: Logger,
@@ -21,6 +22,7 @@ class TrainingRunner():
             scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None
     ):
         self.model = model
+        self.vae = vae
         self.optimiser = optimiser
         self.loss_fn = loss_fn
         self.logger = logger
@@ -74,6 +76,13 @@ class TrainingRunner():
 
     def _train_step(self, batch) -> tuple[torch.Tensor, dict]:
         self.optimiser.zero_grad(set_to_none=True)
+
+        if self.vae is not None:
+            with torch.no_grad():
+                images = batch[0].to(self.device, non_blocking=True)
+                latents = self.vae.encode(images)
+                batch = (latents, batch[1])
+                
         loss, metrics = self.loss_fn(self.model, batch)
         loss.backward()
         self.optimiser.step()

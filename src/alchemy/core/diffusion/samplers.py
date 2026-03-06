@@ -82,4 +82,8 @@ def ddpm_sample(
             sigma = torch.sqrt(coeffs.posterior_variance[t])
             z = torch.randn_like(xt)
             xt = mu + (sigma * z)
+
+    if decoder is not None:
+        xt = decoder(xt)
+            
     return xt
