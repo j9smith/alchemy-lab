@@ -72,7 +72,7 @@ class CheckpointManager():
             load_scheduler: bool = True,
             load_ema: bool = True
     ):
-        path = Path(path)
+        path = Path(path).expanduser()
         checkpoint = torch.load(path, map_location="cpu")
 
         state = checkpoint["state"]
@@ -93,3 +93,5 @@ class CheckpointManager():
             if state.get("scheduler") is None:
                 raise RuntimeError("Checkpoint has no scheduler state.")
             else: scheduler.load_state_dict(state["scheduler"])
+
+        return checkpoint["progress"]
