@@ -73,6 +73,8 @@ def main(cfg: DictConfig):
         )
         runner.step = progress["global_step"]
         runner.epoch = progress["epoch"]
+        runner.start_step = progress["global_step"]
+        logger.set_start_step(progress["global_step"])
 
     runner.train(dataloader=dataloader)
 

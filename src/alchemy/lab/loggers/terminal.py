@@ -41,6 +41,11 @@ class TerminalLogger:
 
         self._last_step = 0
 
+    def set_start_step(self, start_step: int):
+        self._last_step = start_step
+        total = self.cfg.total_steps + start_step
+        self.progress.update(self.task_id, completed=start_step, total=total)
+
     def add_text(self, text: str):
         if not self.enabled:
             return

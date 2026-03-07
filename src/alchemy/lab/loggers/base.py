@@ -30,6 +30,11 @@ class CompositeLogger(Logger):
         for logger in self.loggers:
             logger.log_scalar(name, value, step)
 
+    def set_start_step(self, start_step: int):
+        for logger in self.loggers:
+            if hasattr(logger, 'set_start_step'):
+                logger.set_start_step(start_step)
+
     def close(self):
         for logger in self.loggers:
             logger.close()

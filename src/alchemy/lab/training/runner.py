@@ -33,6 +33,7 @@ class TrainingRunner():
         self.scheduler = scheduler
 
         self.step = 0
+        self.start_step = 0 # If we're loading from checkpoint
         self.epoch = 0
 
     def train(self, dataloader):
@@ -41,7 +42,9 @@ class TrainingRunner():
 
         it = iter(dataloader)
 
-        while self.step < self.cfg.train.max_steps:
+        total_steps = self.cfg.train.max_steps + self.start_step
+
+        while self.step < total_steps:
             try:
                 batch = next(it)
             except StopIteration:
@@ -70,7 +73,7 @@ class TrainingRunner():
                         logging=None, # TODO: add logging identifiers in checkpointing
                         run_config=self.cfg
                     )
-
+        self.logger.add_text("Job complete.")
         # TODO: Save on final step
         self.logger.close()
 
