@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.cuda.nvtx as nvtx
 from dataclasses import dataclass
 
 from alchemy.core.nn.attention import SelfAttention2D, SelfAttention2DConfig
@@ -180,34 +181,54 @@ class UNet2D(nn.Module):
         self.out_act = nn.SiLU()
 
     def forward(self, x:torch.Tensor, t: torch.Tensor, conditioning=None) -> torch.Tensor:
-        t_emb = self.time_embed(t)
+        with nvtx.range("time_embed"):
+            t_emb = self.time_embed(t)
+        
         h = self.in_conv(x)
-
         skips: list[torch.Tensor] = []
 
-        for blocks, downsample in zip(self.down, self.downsample):
-            for mod in blocks:
-                if isinstance(mod, ResBlock2D):
-                    h = mod(h, t_emb)
-                    skips.append(h)
-                else: h = mod(h)
-            h = downsample(h)
+        with nvtx.range("encoder"):
+            for blocks, downsample in zip(self.down, self.downsample):
+                for mod in blocks:
+                    if isinstance(mod, ResBlock2D):
+                        with nvtx.range("resblock"):
+                            h = mod(h, t_emb)
+                            skips.append(h)
+                    elif isinstance(mod, SelfAttention2D):
+                        with nvtx.range("self_attn"):
+                            h = mod(h)
+                    else: 
+                        h = mod(h)
+                with nvtx.range("downsample"):
+                    h = downsample(h)
 
-        h = self.mid1(h, t_emb)
-        h = self.mid_attn(h)
-        h = self.mid2(h, t_emb)
+        with nvtx.range("bottleneck"):
+            with nvtx.range("resblock"):
+                h = self.mid1(h, t_emb)
+            with nvtx.range("self_attn"):
+                h = self.mid_attn(h)
+            with nvtx.range("resblock"):
+                h = self.mid2(h, t_emb)
 
-        for blocks, upsample in zip(self.up, self.upsample):
-            for mod in blocks:
-                if isinstance(mod, ResBlock2D):
-                    skip = skips.pop()
-                    h = torch.cat([h, skip], dim=1)
-                    h = mod(h, t_emb)
-                else: h = mod(h)
-            h = upsample(h)
+        with nvtx.range("decoder"):
+            for blocks, upsample in zip(self.up, self.upsample):
+                for mod in blocks:
+                    if isinstance(mod, ResBlock2D):
+                        with nvtx.range("resblock"):
+                            skip = skips.pop()
+                            h = torch.cat([h, skip], dim=1)
+                            h = mod(h, t_emb)
+                    elif isinstance(mod, SelfAttention2D):
+                        with nvtx.range("self_attn"):
+                            h = mod(h)
+                    else: 
+                        h = mod(h)
+                with nvtx.range("upsample"):
+                    h = upsample(h)
 
-        h = self.out_norm(h)
-        h = self.out_act(h)
-        h = self.out_conv(h)
+        with nvtx.range("out_proj"):
+            h = self.out_norm(h)
+            h = self.out_act(h)
+            h = self.out_conv(h)
 
         return h
