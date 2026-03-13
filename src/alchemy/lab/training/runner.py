@@ -5,6 +5,7 @@ from torch.utils.data import DistributedSampler
 from typing import Optional 
 
 import alchemy.lab.training.distributed as dist
+from alchemy.core.nn.precision import PRECISION_MAP
 from alchemy.lab.loggers.base import Logger
 from alchemy.lab.training.checkpoints import CheckpointManager
 from alchemy.lab.training.ema import update_ema_model
@@ -38,6 +39,8 @@ class TrainingRunner():
         self.start_step = 0 # If we're loading from checkpoint
         self.epoch = 0
 
+        self.dtype = PRECISION_MAP[cfg.train.precision]
+
     def train(self, dataloader, warmup_steps: int = 0, profile_steps: int = 0):
         profiling = profile_steps > 0
         profile_end = warmup_steps + profile_steps
@@ -53,6 +56,7 @@ class TrainingRunner():
             if profiling and self.step == warmup_steps:
                 if dist.is_main_process():
                     print(f"Starting capture at step {self.step}.")
+                torch.cuda.synchronize()
                 profiler.start()
 
             with nvtx.range(f"iter_{self.step}"):
@@ -112,7 +116,8 @@ class TrainingRunner():
                     batch = (latents, batch[1])
         
         with nvtx.range("forward"):
-            loss, metrics = self.loss_fn(self.model, batch)
+            with torch.autocast(device_type="cuda", dtype=self.dtype):
+                loss, metrics = self.loss_fn(self.model, batch)
 
         with nvtx.range("backward"):
             loss.backward()

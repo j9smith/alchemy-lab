@@ -15,7 +15,6 @@ PREDICTION_MODE = ("x0", "eps", "v")
 @dataclass(frozen=True)
 class DDPMSampleConfig:
     prediction_mode: PredictionMode = "eps"
-    dtype: torch.dtype = torch.float32
 
 @torch.no_grad()
 def ddpm_sample(
@@ -23,6 +22,7 @@ def ddpm_sample(
         coeffs: DiffusionCoefficients,
         shape: tuple[int, int, int, int], # [B, C, H, W]
         device: torch.device,
+        dtype: torch.dtype,
         decoder: Optional[nn.Module] = None,
         conditioning=None,
         cfg: DDPMSampleConfig = DDPMSampleConfig(),
@@ -48,12 +48,12 @@ def ddpm_sample(
     """
     if cfg.prediction_mode not in PREDICTION_MODE:
         raise ValueError(f"Unknown prediction mode: {cfg.prediction_mode}")
-    
+
     denoiser.eval()
     T = coeffs.betas.shape[0]
     B = shape[0]
 
-    xt = torch.randn(size=shape, device=device, dtype=cfg.dtype)
+    xt = torch.randn(size=shape, device=device, dtype=dtype)
 
     for t in reversed(range(T)):
         t_batch = torch.full((B,), t, device=device, dtype=torch.long)
