@@ -1,0 +1,5 @@
+_target_: alchemy.lab.training.optim.build_optimiser
+cfg:
+  _target_: alchemy.lab.training.optim.OptimiserConfig
+  name: adamw
+  lr: ${train.lr}

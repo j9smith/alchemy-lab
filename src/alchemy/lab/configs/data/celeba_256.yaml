@@ -1,0 +1,18 @@
+image:
+  channels: 3
+  resolution: 256
+dataset:
+  _target_: alchemy.lab.data.dataset.build_dataset
+  cfg:
+    _target_: alchemy.lab.data.dataset.DatasetConfig
+    resolution: 256
+loader:
+  _target_: alchemy.lab.data.loader.build_dataloader
+  cfg:
+    _target_: alchemy.lab.data.loader.LoaderConfig
+    batch_size: 32
+    num_workers: 8
+    shuffle: true
+    drop_last: true
+    pin_memory: true
+    persistent_workers: true

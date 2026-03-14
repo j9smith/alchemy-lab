@@ -1,0 +1,5 @@
+_target_: alchemy.core.models.vae.pretrained.PretrainedVAE
+cfg:
+  _target_: alchemy.core.models.vae.pretrained.PretrainedVAEConfig
+  pretrained_model: "stabilityai/sd-vae-ft-mse"
+  scaling_factor: 0.18215

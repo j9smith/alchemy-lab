@@ -1,0 +1,15 @@
+logging:
+  tensorboard:
+    _target_: alchemy.lab.loggers.tensorboard.TensorBoardLogger
+    cfg:
+      _target_: alchemy.lab.loggers.tensorboard.TensorBoardLoggerConfig
+      log_dir: ${train.log_dir}
+      experiment_name: ${train.experiment_name}
+      enabled: true
+  terminal:
+    _target_: alchemy.lab.loggers.terminal.TerminalLogger
+    cfg:
+      _target_: alchemy.lab.loggers.terminal.TerminalLoggerConfig
+      total_steps: ${train.max_steps}
+      print_every_n_steps: 10
+      enabled: true 

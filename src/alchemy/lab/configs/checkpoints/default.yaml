@@ -1,0 +1,6 @@
+_target_: alchemy.lab.training.checkpoints.CheckpointManager
+cfg:
+  _target_: alchemy.lab.training.checkpoints.CheckpointManagerConfig
+  save_every_n_steps: ${train.save_every_n_steps}
+  path: ${train.save_path}
+  prefix: ${train.save_prefix}

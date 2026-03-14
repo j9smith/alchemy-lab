@@ -1,0 +1,10 @@
+_target_: alchemy.lab.training.losses.DiffusionLossFn
+loss_cfg:
+  _target_: alchemy.lab.training.losses.DiffusionLossWrapperConfig
+  objective: eps
+  beta_schedule_cfg:
+    _target_: alchemy.core.diffusion.schedules.BetaScheduleConfig
+    type: linear
+    T: 1000
+    beta_start: 0.0001
+    beta_end: 0.02
