@@ -36,6 +36,8 @@ class CheckpointManager():
         if run_config is not None:
             run_config = OmegaConf.to_container(run_config, resolve=True)
 
+        actual_model = model.module if hasattr(model, "module") else model
+
         checkpoint = {
             "time": time.time(),
             "progress": {
@@ -43,7 +45,7 @@ class CheckpointManager():
                 "epoch": epoch
             },
             "state": {
-                "model": model.state_dict(),
+                "model": actual_model.state_dict(),
                 "ema": ema.state_dict() if ema is not None else None,
                 "optimiser": optimiser.state_dict() if optimiser is not None else None,
                 "scheduler": scheduler.state_dict() if scheduler is not None else None
@@ -77,7 +79,8 @@ class CheckpointManager():
 
         state = checkpoint["state"]
 
-        model.load_state_dict(state["model"], strict=strict_model)
+        actual_model = model.module if hasattr(model, "module") else model
+        actual_model.load_state_dict(state["model"], strict=strict_model)
 
         if load_optimiser and optimiser is not None:
             if state.get("optimiser") is None:
