@@ -31,7 +31,6 @@ class TerminalLogger:
             TimeRemainingColumn() if cfg.total_steps else TextColumn(""),
             TextColumn("| {task.fields[metrics]}"),
         )
-        self.progress.start()
 
         self.task_id = self.progress.add_task(
             description="",
@@ -40,6 +39,11 @@ class TerminalLogger:
         )
 
         self._last_step = 0
+
+    def start(self):
+        if not self.enabled:
+            return
+        self.progress.start()
 
     def set_start_step(self, start_step: int):
         self._last_step = start_step

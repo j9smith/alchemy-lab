@@ -80,6 +80,7 @@ def main(cfg: DictConfig):
 
     dist.barrier()
 
+    logger.start()
     runner.train(dataloader=dataloader)
 
 if __name__ == "__main__":

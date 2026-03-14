@@ -19,6 +19,11 @@ class CompositeLogger(Logger):
         super().__init__()
         self.loggers = []
 
+    def start(self):
+        for logger in self.loggers:
+            if hasattr(logger, 'start'):
+                logger.start()
+
     def add(self, logger: Logger):
         self.loggers.append(logger)
 
