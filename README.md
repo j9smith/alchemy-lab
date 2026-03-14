@@ -1,9 +1,13 @@
+<h1 align="center">Alchemy Lab</h1>
+<p align="center"><em>A Diffusion Model Research Framework</em></p>
 <p align="center">
   <img src="docs/assets/header.png" width="300" />
 </p>
-
-
-# Alchemy Lab
+<p align="center">
+  <a href="https://opensource.org/licenses/Apache-2.0">
+    <img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License" />
+  </a>
+</p>
 
 Alchemy Lab is a modular research infrastructure for building, training, and deploying diffusion models for image generation.
 
@@ -21,7 +25,6 @@ It is not intended to compete with high-level libraries such as those offered by
 - Configuration-driven experiment management
 - Structured training harness with clear separation from model primitives
 - Support for distributed training (DDP)
-- Explicit pathway from research experimentation to deployment runtime
 
 ## Repository Structure
 Alchemy Lab is organised as a monorepo with three pillars:
