@@ -28,3 +28,10 @@ lab = [
 dev = [
     "pytest>=9.0.2",
 ]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/alchemy"]
