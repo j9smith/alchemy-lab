@@ -40,7 +40,12 @@ class CompositeLogger(Logger):
             logger.close()
 
 def build_logger(cfg: DictConfig) -> CompositeLogger:
+    from alchemy.lab.training.distributed import is_main_process
     composite = CompositeLogger()
+
+    if not is_main_process():
+        return composite
+    
     loggers_loaded = []
 
     for name, logger_cfg in cfg.logging.items():

@@ -6,7 +6,10 @@ def is_distributed() -> bool:
     return dist.is_available() and dist.is_initialized()
 
 def get_device() -> torch.device:
-    return "cuda" if torch.cuda.is_available() else "cpu"
+    if torch.cuda.is_available():
+        local_rank = int(os.environ.get("LOCAL_RANK", 0))
+        return torch.device(f"cuda:{local_rank}")
+    return torch.device("cpu")
 
 def get_rank() -> int:
     return dist.get_rank() if dist.is_initialized() else 0 

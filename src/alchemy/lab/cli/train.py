@@ -13,19 +13,22 @@ from alchemy.lab.loggers.base import build_logger
 
 @hydra.main(version_base=None, config_path="../configs", config_name="train")
 def main(cfg: DictConfig):
-    print("\n\n"
-        " █████╗ ██╗      ██████╗██╗  ██╗███████╗███╗   ███╗██╗   ██╗\n"
-        "██╔══██╗██║     ██╔════╝██║  ██║██╔════╝████╗ ████║╚██╗ ██╔╝\n"
-        "███████║██║     ██║     ███████║█████╗  ██╔████╔██║ ╚████╔╝ \n"
-        "██╔══██║██║     ██║     ██╔══██║██╔══╝  ██║╚██╔╝██║  ╚██╔╝  \n"
-        "██║  ██║███████╗╚██████╗██║  ██║███████╗██║ ╚═╝ ██║   ██║   \n"
-        "╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝   ╚═╝   \n"
-        "                            L A B\n\n"
-
-    )
     dist.init_distributed(backend=cfg.dist.backend)
+
+    if dist.is_main_process():
+        print("\n\n"
+            " █████╗ ██╗      ██████╗██╗  ██╗███████╗███╗   ███╗██╗   ██╗\n"
+            "██╔══██╗██║     ██╔════╝██║  ██║██╔════╝████╗ ████║╚██╗ ██╔╝\n"
+            "███████║██║     ██║     ███████║█████╗  ██╔████╔██║ ╚████╔╝ \n"
+            "██╔══██║██║     ██║     ██╔══██║██╔══╝  ██║╚██╔╝██║  ╚██╔╝  \n"
+            "██║  ██║███████╗╚██████╗██║  ██║███████╗██║ ╚═╝ ██║   ██║   \n"
+            "╚═╝  ╚═╝╚══════╝ ╚═════╝╚═╝  ╚═╝╚══════╝╚═╝     ╚═╝   ╚═╝   \n"
+            "                            L A B\n\n"
+
+        )
+
     device = dist.get_device()
-    dtype = torch.float32
+    logger = build_logger(cfg)
 
     model = instantiate(cfg.model).to(device)
     ema  = copy.deepcopy(model).eval().to(device)
@@ -45,7 +48,6 @@ def main(cfg: DictConfig):
 
     checkpoint_manager = instantiate(cfg.checkpoints)
 
-    logger = build_logger(cfg)
     runner = TrainingRunner(
         model=model,
         vae=vae,
@@ -75,6 +77,8 @@ def main(cfg: DictConfig):
         runner.epoch = progress["epoch"]
         runner.start_step = progress["global_step"]
         logger.set_start_step(progress["global_step"])
+
+    dist.barrier()
 
     runner.train(dataloader=dataloader)
 
