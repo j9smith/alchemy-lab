@@ -1,22 +1,27 @@
 {
-    "name": "alchemy-runtime-docker-dev",
+    "name": "alchemy-runtime-dev",
     "dockerComposeFile": "../docker-compose.yaml",
     "service": "api",
     "workspaceFolder": "/workspace",
-
     "customizations": {
         "vscode": {
             "extensions": [
-                "ms-python.python",
-                "ms-python.vscode-pylance",
+                "llvm-vs-code-extensions.vscode-clangd",
+                "ms-vscode.cmake-tools",
                 "ms-azuretools.vscode-docker"
             ],
             "settings": {
-                "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
-                "python.analysis.autoImportCompletions": true
+                "cmake.buildDirectory": "${workspaceFolder}/build",
+                "cmake.configureOnOpen": true,
+                "cmake.generator": "Ninja",
+                "clangd.path": "/usr/bin/clangd",
+                "clangd.arguments": [
+                    "--compile-commands-dir=${workspaceFolder}/build",
+                    "--background-index",
+                    "--clang-tidy"
+                ]
             }
         }
     },
-
-    "postCreateCommand": "/workspace/.venv/bin/python -c \"import sys; print(sys.executable)\""
+    "postCreateCommand": "cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake && cmake --build build"
 }

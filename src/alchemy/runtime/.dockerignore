@@ -1,7 +1,5 @@
-__pycache__/
-*.pyc
-.venv/
 .git/
 .gitignore
 .vscode/
 .devcontainer/
+build/
