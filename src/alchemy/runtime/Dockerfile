@@ -1,4 +1,4 @@
-FROM nvidia/cuda:13.2.0-devel-ubuntu22.04
+FROM nvcr.io/nvidia/tensorrt:26.02-py3
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
