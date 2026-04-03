@@ -17,8 +17,8 @@ int main(){
     });
 
     svr.Post("/generate", [&queue](const httplib::Request&, httplib::Response& res) {
-        std::vector<float> input = {1.0f, 2.0f, 3.0f, 4.0f};
-        auto fut = queue.enqueue(input);
+        std::string prompt = "Placeholder";
+        auto fut = queue.enqueue(prompt);
         auto result = fut.get();
         res.set_content("received result\n", "text/plain");
     });

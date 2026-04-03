@@ -6,7 +6,7 @@
 #include <vector>
 
 struct BatchItem {
-    std::vector<float> input;
+    std::string prompt;
     std::promise<std::vector<float>> p_result;
 };
 
@@ -17,6 +17,6 @@ class BatchQueue {
     static constexpr size_t kMaxBatch = 8;
     static constexpr auto kMaxWait = std::chrono::milliseconds(1000);
     public:
-        std::future<std::vector<float>> enqueue(std::vector<float> input);
+        std::future<std::vector<float>> enqueue(std::string prompt);
         void run_loop();
 };

@@ -1,13 +1,13 @@
 #include "batch_queue.h"
 #include "infer.h"
 
-std::future<std::vector<float>> BatchQueue::enqueue(std::vector<float> input) {
+std::future<std::vector<float>> BatchQueue::enqueue(std::string prompt) {
     // runs on request handler thread
     std::promise<std::vector<float>> p;
     auto fut = p.get_future();
     {
         std::lock_guard lock(mu_);
-        queue_.push_back({std::move(input), std::move(p)});
+        queue_.push_back({std::move(prompt), std::move(p)});
     }
     // Awaken inference thread
     cv_.notify_one();
