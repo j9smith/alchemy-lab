@@ -46,7 +46,7 @@ TRTEngine::~TRTEngine() {
     cudaStreamDestroy(stream_);
 }
 
-std::vector<float> TRTEngine::run(
+void TRTEngine::run(
     const std::unordered_map<std::string, std::vector<float>>& inputs,
     int batch_size
 ) {
@@ -65,17 +65,5 @@ std::vector<float> TRTEngine::run(
     }
 
     context_->enqueueV3(stream_);
-
-    std::string output_name = "output";
-    std::vector<float> output(batch_size * tensor_sizes_.at(output_name));
-
-    // Move output back to host
-    CUDA_CHECK(cudaMemcpyAsync(
-        output.data(), 
-        device_buffers_.at(output_name), 
-        batch_size * tensor_sizes_.at(output_name) * sizeof(float), 
-        cudaMemcpyDeviceToHost, stream_));
-
     CUDA_CHECK(cudaStreamSynchronize(stream_));
-    return output;
 }

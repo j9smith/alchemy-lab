@@ -28,24 +28,20 @@ class TRTEngine {
     public:
         TRTEngine(const std::string& plan_path);
         ~TRTEngine();
-        std::vector<float> run(
+        void run(
             const std::unordered_map<std::string, std::vector<float>>& inputs,
             int batch_size
         );
-};
 
-class DecoderEngine {
-    TRTEngine engine_;
+        void run_device(int batch_size) { context_->enqueueV3(stream_); }
 
-    public:
-        DecoderEngine(const std::string& plan_path) : engine_(plan_path) {}
-        std::vector<float> run(
-            const std::vector<float>& latent,
-            int batch_size
-        )
-        {
-            return engine_.run({{"latent", latent}}, batch_size);
+        float* get_device_buffer(const std::string& name) {
+            return static_cast<float*>(device_buffers_.at(name));
         }
+        size_t get_tensor_size(const std::string& name) {
+            return tensor_sizes_.at(name);
+        }
+        cudaStream_t stream() { return stream_; }
 };
 
 class DenoiserEngine {
@@ -53,12 +49,51 @@ class DenoiserEngine {
 
     public:
         DenoiserEngine(const std::string& plan_path) : engine_(plan_path) {}
-        std::vector<float> run(
+        void run(
             const std::vector<float>& xt, // [B, C, H, W]
             const std::vector<float>& t, // [B]
             int batch_size
         )
         {
-            return engine_.run({{"xt", xt}, {"t", t}}, batch_size);
+            engine_.run({{"xt", xt}, {"t", t}}, batch_size);
+        }
+
+        void run(const std::vector<float>& t, int batch_size) {
+            engine_.run({{"t", t}}, batch_size);
+            engine_.run_device(batch_size);
+        }
+
+        float* d_xt() { return engine_.get_device_buffer("xt"); }
+        float* d_output() { return engine_.get_device_buffer("output"); }
+};
+
+class DecoderEngine {
+    TRTEngine engine_;
+
+    public:
+        DecoderEngine(const std::string& plan_path) : engine_(plan_path) {}
+        std::vector<float> run(float* d_xt, int batch_size)
+        {
+            cudaMemcpyAsync(
+                engine_.get_device_buffer("latent"), 
+                d_xt, 
+                batch_size * engine_.get_tensor_size("latent") * sizeof(float), 
+                cudaMemcpyDeviceToDevice,
+                engine_.stream()    
+            );
+
+            engine_.run_device(batch_size);
+
+            size_t out_size = batch_size * engine_.get_tensor_size("output");
+            std::vector<float> output(out_size);
+
+            cudaMemcpyAsync(
+                output.data(), 
+                engine_.get_device_buffer("output"),
+                out_size * sizeof(float), 
+                cudaMemcpyDeviceToHost, engine_.stream());
+            
+            cudaStreamSynchronize(engine_.stream());
+            return output;
         }
 };
