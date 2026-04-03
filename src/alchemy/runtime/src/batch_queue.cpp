@@ -36,7 +36,7 @@ void BatchQueue::run_loop() {
         }
 
         // Hand off batch for inference
-        auto results = infer(batch);
+        auto results = infer(batch, pipeline_);
 
         // Fulfill the promise of each request with corresponding result
         for (size_t i = 0; i < batch.size(); ++i) {

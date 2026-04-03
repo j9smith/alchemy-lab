@@ -1,4 +1,5 @@
 #pragma once
+#include "pipeline.h"
 #include <chrono>
 #include <condition_variable>
 #include <future>
@@ -11,12 +12,14 @@ struct BatchItem {
 };
 
 class BatchQueue {
+    AlchemyPipeline& pipeline_;
     std::mutex mu_;
     std::condition_variable cv_;
     std::vector<BatchItem> queue_;
     static constexpr size_t kMaxBatch = 8;
     static constexpr auto kMaxWait = std::chrono::milliseconds(1000);
     public:
+        BatchQueue(AlchemyPipeline& pipeline) : pipeline_(pipeline) {}
         std::future<std::vector<float>> enqueue(std::string prompt);
         void run_loop();
 };

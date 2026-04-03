@@ -1,10 +1,23 @@
 #include <iostream>
+#include <memory>
 #include <thread>
 #include <httplib.h>
 #include "batch_queue.h"
+#include "pipeline.h"
+#include "scheduler.h"
 
 int main(){
-    BatchQueue queue;
+    AlchemyPipeline pipeline(
+        "denoiser.plan",
+        "decoder.plan",
+        std::make_unique<DDPMScheduler>(),
+        8,
+        4,
+        32,
+        32
+    );
+
+    BatchQueue queue(pipeline);
 
     std::thread inference_thread([&queue]() {
         queue.run_loop();
