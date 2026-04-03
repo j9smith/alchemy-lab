@@ -1,5 +1,6 @@
 #include "engine.h"
 #include <fstream>
+#include <unordered_map>
 #include "utils.h"
 
 TRTEngine::TRTEngine(const std::string& plan_path) {
@@ -15,47 +16,66 @@ TRTEngine::TRTEngine(const std::string& plan_path) {
     engine_.reset(runtime_->deserializeCudaEngine(buffer.data(), size));
     context_.reset(engine_->createExecutionContext());
 
-    int max_batch = engine_ -> getProfileShape("input", 0, 
+    // Get the maximum batch size in the onnx model
+    const char* input_name = engine_->getIOTensorName(0);
+    int max_batch = engine_ -> getProfileShape(input_name, 0, 
         nvinfer1::OptProfileSelector::kMAX).d[0];
 
-    auto input_dims = engine_->getTensorShape("input");
-    auto output_dims = engine_->getTensorShape("output");
+    for(int i = 0; i < engine_->getNbIOTensors(); ++i) {
+        const char* name = engine_->getIOTensorName(i);
+        auto dims = engine_->getTensorShape(name);
 
-    // Calculate number of floats in one sample (i.e. C*H*W)
-    input_size_ = 1;
-    output_size_ = 1;
-    for (int i = 1; i < input_dims.nbDims; ++i) input_size_ *= input_dims.d[i];
-    for (int i = 1; i < output_dims.nbDims; ++i) output_size_ *= output_dims.d[i];
+        // Store tensor sizes
+        size_t n = 1;
+        for(int j = 1; j < dims.nbDims; ++j) n *= dims.d[j];
+        tensor_sizes_[name] = n;
 
-    // Allocate memory on device
-    CUDA_CHECK(cudaMalloc(&d_input_, max_batch * input_size_ * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&d_output_, max_batch * output_size_ * sizeof(float)));
+        // Allocate buffer on device and store device address
+        void* buf = nullptr;
+        CUDA_CHECK(cudaMalloc(&buf, max_batch * n * sizeof(float)));
+        device_buffers_[name] = buf;
+
+        context_->setTensorAddress(name, buf);
+    }
 
     CUDA_CHECK(cudaStreamCreate(&stream_));
-    context_->setTensorAddress("input", d_input_);
-    context_->setTensorAddress("output", d_output_);
 }
 
 TRTEngine::~TRTEngine() {
-    cudaFree(d_input_);
-    cudaFree(d_output_);
+    for(auto& [name, ptr] : device_buffers_) cudaFree(ptr);
     cudaStreamDestroy(stream_);
 }
 
-std::vector<float> TRTEngine::run(const std::vector<float>& input, int batch_size) {
-    // Move input to device
-    CUDA_CHECK(cudaMemcpyAsync(d_input_, input.data(), 
-        batch_size * input_size_ * sizeof(float), 
-        cudaMemcpyHostToDevice, stream_));
+std::vector<float> TRTEngine::run(
+    const std::unordered_map<std::string, std::vector<float>>& inputs,
+    int batch_size
+) {
+    for(auto& [name, data] : inputs) {
+        // We need to set actual batch size because it's currently dynamic
+        auto dims = engine_->getTensorShape(name.c_str());
+        dims.d[0] = batch_size;
+        context_->setInputShape(name.c_str(), dims);
+
+        // Move input tensor to device
+        CUDA_CHECK(cudaMemcpyAsync(
+            device_buffers_.at(name), 
+            data.data(), 
+            batch_size * tensor_sizes_.at(name) * sizeof(float), 
+            cudaMemcpyHostToDevice, stream_));
+    }
 
     context_->enqueueV3(stream_);
 
-    std::vector<float> output(batch_size * output_size_);
-    CUDA_CHECK(cudaMemcpyAsync(output.data(), d_output_, 
-        batch_size * output_size_ * sizeof(float), 
+    std::string output_name = "output";
+    std::vector<float> output(batch_size * tensor_sizes_.at(output_name));
+
+    // Move output back to host
+    CUDA_CHECK(cudaMemcpyAsync(
+        output.data(), 
+        device_buffers_.at(output_name), 
+        batch_size * tensor_sizes_.at(output_name) * sizeof(float), 
         cudaMemcpyDeviceToHost, stream_));
 
     CUDA_CHECK(cudaStreamSynchronize(stream_));
-
     return output;
 }

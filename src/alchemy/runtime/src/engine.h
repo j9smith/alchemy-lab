@@ -3,6 +3,7 @@
 #include <NvInfer.h>
 #include <NvInferRuntime.h>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 class Logger : public nvinfer1::ILogger
@@ -20,16 +21,17 @@ class TRTEngine {
     std::unique_ptr<nvinfer1::ICudaEngine> engine_;
     std::unique_ptr<nvinfer1::IExecutionContext> context_;
     
-    void* d_input_; 
-    void* d_output_;
+    std::unordered_map<std::string, void*> device_buffers_;
+    std::unordered_map<std::string, size_t> tensor_sizes_;
     cudaStream_t stream_;
-    size_t input_size_;
-    size_t output_size_;
 
     public:
         TRTEngine(const std::string& plan_path);
         ~TRTEngine();
-        std::vector<float> run(const std::vector<float>& input, int batch_size);
+        std::vector<float> run(
+            const std::unordered_map<std::string, std::vector<float>>& inputs,
+            int batch_size
+        );
 };
 
 class DecoderEngine {
@@ -37,6 +39,13 @@ class DecoderEngine {
 
     public:
         DecoderEngine(const std::string& plan_path) : engine_(plan_path) {}
+        std::vector<float> run(
+            const std::vector<float>& latent,
+            int batch_size
+        )
+        {
+            return engine_.run({{"latent", latent}}, batch_size);
+        }
 };
 
 class DenoiserEngine {
@@ -44,4 +53,12 @@ class DenoiserEngine {
 
     public:
         DenoiserEngine(const std::string& plan_path) : engine_(plan_path) {}
+        std::vector<float> run(
+            const std::vector<float>& xt, // [B, C, H, W]
+            const std::vector<float>& t, // [B]
+            int batch_size
+        )
+        {
+            return engine_.run({{"xt", xt}, {"t", t}}, batch_size);
+        }
 };
