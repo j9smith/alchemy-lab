@@ -5,14 +5,13 @@
 
 class Scheduler {
     public:
+        std::vector<int> timestep_schedule_;
         virtual ~Scheduler() = default;
 
         virtual void step(
             float* d_xt, const float* d_noise_pred, 
             int t, int total_elements, cudaStream_t stream
         ) = 0;
-
-        virtual std::vector<int> timesteps() const = 0;
 };
 
 class DDPMScheduler : public Scheduler {
@@ -28,7 +27,6 @@ class DDPMScheduler : public Scheduler {
     std::vector<float> posterior_variance_;
     std::vector<float> posterior_mean_coef1_;
     std::vector<float> posterior_mean_coef2_;
-    std::vector<int> timesteps_;
     curandState* d_rng_states_ = nullptr;
 
     public:
@@ -48,8 +46,6 @@ class DDPMScheduler : public Scheduler {
             int total_elements, // B*C*H*W, i.e. total size of flattened buffer
             cudaStream_t stream_
         ) override;
-
-        std::vector<int> timesteps() const override;
 };
 
 class DDIMScheduler : public Scheduler {};

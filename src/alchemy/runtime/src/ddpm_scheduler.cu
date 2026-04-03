@@ -17,6 +17,7 @@ __global__ void ddpm_step(
 
     // One sample per thread
     float x0_pred = (d_xt[i] - sqrt_one_minus_ab * d_noise_pred[i]) / sqrt_ab;
+    x0_pred = fminf(1.0f, fmaxf(-1.0f, x0_pred)); // clamp to [-1, 1]
     float mu = coef1 * x0_pred + coef2 * d_xt[i];
     d_xt[i] = mu + std_dev * curand_normal(&rng_states[i]);
 }
@@ -29,6 +30,9 @@ DDPMScheduler::DDPMScheduler(int T, float beta_start, float beta_end, int max_el
     alphas_cumprod_prev_.resize(T); sqrt_alphas_cumprod_.resize(T);
     sqrt_one_minus_alphas_cumprod_.resize(T); posterior_variance_.resize(T);
     posterior_mean_coef1_.resize(T); posterior_mean_coef2_.resize(T);
+    timestep_schedule_.resize(T);
+
+    std::iota(timestep_schedule_.rbegin(), timestep_schedule_.rend(), 0);
 
     for(int i = 0; i < T; ++i) {
         betas_[i] = beta_start + (beta_end - beta_start) * i / (T - 1);
