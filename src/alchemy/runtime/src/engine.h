@@ -41,7 +41,19 @@ class TRTEngine {
         size_t get_tensor_size(const std::string& name) {
             return tensor_sizes_.at(name);
         }
+
         cudaStream_t stream() { return stream_; }
+
+        void set_shapes(int batch_size) {
+            for (int i = 0; i < engine_->getNbIOTensors(); ++i) {
+                const char* name = engine_->getIOTensorName(i);
+                if (engine_->getTensorIOMode(name) == nvinfer1::TensorIOMode::kINPUT) {
+                    auto dims = engine_->getTensorShape(name);
+                    dims.d[0] = batch_size;
+                    context_->setInputShape(name, dims);
+                }
+            }
+        }
 };
 
 class DenoiserEngine {
@@ -60,11 +72,14 @@ class DenoiserEngine {
 
         void run(const std::vector<float>& t, int batch_size) {
             engine_.run({{"t", t}}, batch_size);
-            engine_.run_device(batch_size);
         }
+
+        cudaStream_t stream() { return engine_.stream(); }
 
         float* d_xt() { return engine_.get_device_buffer("xt"); }
         float* d_output() { return engine_.get_device_buffer("output"); }
+
+        void set_shapes(int batch_size) { engine_.set_shapes(batch_size); }
 };
 
 class DecoderEngine {
