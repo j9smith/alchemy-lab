@@ -7,3 +7,8 @@ services:
       - .:/workspace:cached
     working_dir: /workspace
     command: sleep infinity
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
