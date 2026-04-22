@@ -1,7 +1,4 @@
 #include "infer.h"
-#include "engine.h"
-
-static TRTEngine engine("PATH");
 
 std::vector<std::vector<float>> infer(std::vector<BatchItem>& batch, AlchemyPipeline& pipeline) {
     int B = batch.size();
