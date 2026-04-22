@@ -14,7 +14,7 @@ Alchemy Lab is a modular research infrastructure for building, training, and dep
 It is designed to:
 - Enable fast, configuration-driven experimentation
 - Facilitate evaluation, monitoring, and analysis
-- Bridge research protoypes and scalable systems
+- Bridge research prototypes and scalable systems
 
 It is not intended to compete with high-level libraries such as those offered by Hugging Face, or vLLM/sglang. Instead, it is closer to a personal research platform.
 
@@ -36,7 +36,7 @@ Alchemy Lab is organised as a monorepo with three pillars:
 src/alchemy/
 |-- core/        # diffusion primitives, model components
 |-- lab/         # training infrastructure
-|-- runtime/     # inference (planned)
+|-- runtime/     # inference
 ```
 
 ## Installation & Usage
@@ -106,11 +106,56 @@ nsys profile \
   uv run python profiling.py
 ```
 
+## Alchemy Runtime
+Alchemy Lab also includes a lightweight inference server implemented in C++ using [TensorRT](https://developer.nvidia.com/tensorrt) for accelerated GPU inference. 
+
+#### Prerequisites
+- NVIDIA GPU with TensorRT installed
+- Docker with [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html)
+- ONNX model files exported from a trained checkpoint via `lab/cli/export.py`
+- TensorRT `.plan` files converted from the exported ONNX models via `trtexec`
+
+#### Export & Conversion
+Firstly, a trained checkpoint must be exported to ONNX. The following will export both the denoiser and (if specified) the decoder loaded in config:
+```bash
+cd src/alchemy/lab/cli
+uv run python export.py --ckpt ./weights/unet_stepXXX.pt --use_ema
+```
+
+Then convert to TensorRT plans (must be run on the target GPU inside the runtime container; adjust shapes as necessary):
+```bash
+trtexec --onnx=denoiser.onnx --saveEngine=denoiser.plan \
+  --minShapes=xt:1x4x32x32,t:1 --optShapes=xt:4x4x32x32,t:4 --maxShapes=xt:8x4x32x32,t:8
+
+trtexec --onnx=decoder.onnx --saveEngine=decoder.plan \
+  --minShapes=latent:1x4x32x32 --optShapes=latent:4x4x32x32 --maxShapes=latent:8x4x32x32
+```
+
+#### Running
+Start the dev container from `src/alchemy/runtime/`:
+```bash
+docker compose up -d
+docker compose exec api bash
+```
+
+Build and launch the server:
+```bash
+cd build
+cmake --build .
+./alchemy-runtime
+```
+
+To generate an image while the server is running, from another terminal:
+```bash
+curl -X POST http://localhost:8000/generate -o output.ppm
+xdg-open output.ppm
+```
+
 ## Roadmap
 Alchemy Lab is very much a work in progress. Planned extensions include:
 - DiT architecture
 - Mixed precision training
 - Distributed training (FSDP)
 - Performance enhancements
-- ONNX export
-- Generic deployment infrastructure
+- ~~ONNX export~~
+- ~~Generic deployment infrastructure~~
