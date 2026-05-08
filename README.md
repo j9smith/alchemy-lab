@@ -154,7 +154,7 @@ xdg-open output.ppm
 ## Roadmap
 Alchemy Lab is very much a work in progress. Planned extensions include:
 - DiT architecture
-- Mixed precision training
+- ~~Mixed precision training~~
 - Distributed training (FSDP)
 - Performance enhancements
 - ~~ONNX export~~
