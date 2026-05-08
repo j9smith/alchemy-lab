@@ -26,6 +26,7 @@ class CheckpointManager():
             ema: Optional[torch.nn.Module] = None,
             optimiser: Optional[torch.optim.Optimizer] = None,
             scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
+            scaler: Optional[torch.amp.GradScaler] = None,
             logging: Optional[Dict[str, Any]] = None,
             run_config: Optional[Dict[str, Any]] = None
     ):
@@ -48,7 +49,8 @@ class CheckpointManager():
                 "model": actual_model.state_dict(),
                 "ema": ema.state_dict() if ema is not None else None,
                 "optimiser": optimiser.state_dict() if optimiser is not None else None,
-                "scheduler": scheduler.state_dict() if scheduler is not None else None
+                "scheduler": scheduler.state_dict() if scheduler is not None else None,
+                "scaler": scaler.state_dict() if scaler is not None else None
             },
             "logging": {},
             "run_config": run_config
@@ -69,10 +71,12 @@ class CheckpointManager():
             ema: Optional[torch.nn.Module],
             optimiser: Optional[torch.optim.Optimizer],
             scheduler: Optional[torch.optim.lr_scheduler.LRScheduler],
+            scaler: Optional[torch.amp.GradScaler] = None,
             strict_model: bool = True,
             load_optimiser: bool = True,
             load_scheduler: bool = True,
-            load_ema: bool = True
+            load_ema: bool = True,
+            load_scaler: bool = True
     ):
         path = Path(path).expanduser()
         checkpoint = torch.load(path, map_location="cpu")
@@ -96,5 +100,9 @@ class CheckpointManager():
             if state.get("scheduler") is None:
                 raise RuntimeError("Checkpoint has no scheduler state.")
             else: scheduler.load_state_dict(state["scheduler"])
+
+        # graceful fallback: pre-AMP checkpoints have no scaler state, keep fresh
+        if load_scaler and scaler is not None and state.get("scaler") is not None:
+            scaler.load_state_dict(state["scaler"])
 
         return checkpoint["progress"]

@@ -68,10 +68,12 @@ def main(cfg: DictConfig):
             ema=ema,
             optimiser=optimiser,
             scheduler=None,
+            scaler=runner.scaler,
             strict_model=True,
             load_optimiser=True,
             load_scheduler=False,
-            load_ema=True
+            load_ema=True,
+            load_scaler=True
         )
         runner.step = progress["global_step"]
         runner.epoch = progress["epoch"]
