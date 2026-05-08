@@ -40,6 +40,8 @@ class TrainingRunner():
         self.epoch = 0
 
         self.dtype = PRECISION_MAP[cfg.train.precision]
+        # GradScaler active only for fp16; no-op for bf16/fp32
+        self.scaler = torch.amp.GradScaler(enabled=(self.dtype == torch.float16))
 
     def train(self, dataloader, warmup_steps: int = 0, profile_steps: int = 0):
         profiling = profile_steps > 0
@@ -89,6 +91,7 @@ class TrainingRunner():
                                 ema=self.ema,
                                 optimiser=self.optimiser,
                                 scheduler=self.scheduler,
+                                scaler=self.scaler, # persist loss-scale state for clean fp16 resumes
                                 logging=None, # TODO: add logging identifiers in checkpointing
                                 run_config=self.cfg
                             )
@@ -110,7 +113,8 @@ class TrainingRunner():
 
         if self.vae is not None:
             with nvtx.range("vae_encode"):
-                with torch.no_grad():
+                # match training dtype so VAE benefits from mixed precision
+                with torch.no_grad(), torch.autocast(device_type="cuda", dtype=self.dtype):
                     images = batch[0].to(self.device, non_blocking=True)
                     latents = self.vae.encode(images)
                     batch = (latents, batch[1])
@@ -120,10 +124,14 @@ class TrainingRunner():
                 loss, metrics = self.loss_fn(self.model, batch)
 
         with nvtx.range("backward"):
-            loss.backward()
+            # scale loss so fp16 gradients stay in representable range
+            self.scaler.scale(loss).backward()
 
         with nvtx.range("optimiser_step"):
-            self.optimiser.step()
+            # unscales gradients, skips step on inf/nan
+            self.scaler.step(self.optimiser)
+            # adjusts scale factor for next iteration
+            self.scaler.update()
 
         with nvtx.range("ema_update"):
             if self.ema is not None:
