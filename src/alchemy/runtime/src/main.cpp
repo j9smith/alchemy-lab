@@ -9,7 +9,7 @@
 
 int main() {
   AlchemyPipeline pipeline("denoiser.plan", "decoder.plan",
-                           std::make_unique<DDPMScheduler>(), 8, 4, 32, 32);
+                           std::make_unique<DDIMScheduler>(), 8, 4, 32, 32);
 
   BatchQueue queue(pipeline);
 

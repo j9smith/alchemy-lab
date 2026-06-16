@@ -31,6 +31,7 @@ add_executable(alchemy-runtime
     src/engine.cpp
     src/pipeline.cpp
     src/ddpm_scheduler.cu
+    src/ddim_scheduler.cu
     src/utils.cu
 )
 
